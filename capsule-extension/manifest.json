@@ -1,0 +1,48 @@
+{
+  "manifest_version": 3,
+  "name": "Capsule",
+  "version": "1.0.0",
+  "description": "Organize YouTube videos into nested folders. Your personal video library.",
+  "permissions": ["storage", "activeTab", "scripting", "cookies"],
+  "host_permissions": [
+    "https://www.youtube.com/*",
+    "http://localhost:3000/*",
+    "https://*.clerk.accounts.dev/*"
+  ],
+  "background": {
+    "service_worker": "background/service-worker.ts",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["content/inject.ts"],
+      "css": ["content/inject.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "sidebar/index.html",
+        "sidebar/index.js",
+        "index.css",
+        "icons/*",
+        "assets/*"
+      ],
+      "matches": ["https://www.youtube.com/*"]
+    }
+  ],
+  "icons": {
+    "16": "public:icons/icon16.png",
+    "48": "public:icons/icon48.png",
+    "128": "public:icons/icon128.png"
+  },
+  "action": {
+    "default_title": "Capsule",
+    "default_icon": {
+      "16": "public:icons/icon16.png",
+      "48": "public:icons/icon48.png"
+    }
+  }
+}

@@ -1,0 +1,41 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id          String   @id @default(cuid())
+  clerkUserId String   @unique
+  createdAt   DateTime @default(now())
+  folders     Folder[]
+  videos      Video[]
+}
+
+model Folder {
+  id        String   @id @default(cuid())
+  name      String
+  parentId  String?
+  parent    Folder?  @relation("FolderToFolder", fields: [parentId], references: [id], onDelete: Cascade)
+  children  Folder[] @relation("FolderToFolder")
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  videos    Video[]
+  createdAt DateTime @default(now())
+}
+
+model Video {
+  id        String   @id @default(cuid())
+  title     String
+  videoId   String
+  thumbnail String
+  url       String
+  folderId  String?
+  folder    Folder?  @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
