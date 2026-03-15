@@ -12,6 +12,16 @@ npm run build
 
 ---
 
+## 📱 Control Panel (Popup)
+
+Capsule now includes a premium **Control Panel** accessible via the extension icon.
+- **Enable/Disable**: Instantly toggle the extension's presence on YouTube.
+- **Library Stats**: See your total video count at a glance.
+- **Direct Access**: Quick-launch button for the Web Dashboard.
+- **Premium UI**: Ultra-clean "Apple Control Center" style aesthetics.
+
+---
+
 ## Loading in Chrome
 
 1. Open `chrome://extensions`
@@ -175,6 +185,7 @@ npm run dev
 | **Universal Search**   | Real-time filtering across all video titles and folder names.                                                   |
 | **Quick Playback**     | Click any saved video to instantly navigate YouTube's SPA to that video.                                        |
 | **Persistent UI**      | Sidebar stays open across YouTube navigation without breaking the layout.                                       |
+| **Control Panel**      | Integrated popup to toggle extension state and view quick stats.                                               |
 | **Premium Aesthetic**  | Follows the same glassmorphism design system as the Web Dashboard.                                              |
 | **Shadow DOM Ready**   | Advanced element probing to bypass YouTube's TrustedHTML policies and `yt-lockup-view-model` shadow boundaries. |
 
@@ -216,3 +227,16 @@ npm run dev
 | Lucide React              | Icon library                     |
 | vite-plugin-web-extension | Extension-aware Vite build       |
 | Manifest V3               | Modern Chrome extension standard |
+
+---
+
+## 🌐 Production Alignment
+
+To sync your extension with a deployed dashboard (e.g., Vercel):
+
+1.  **Update Config**: Set the production URL in `utils/config.ts`.
+2.  **Sync Host**: Ensure `sidebar/main.tsx` uses the production URL as the Clerk `syncHost`.
+3.  **Host Permissions**: Add your production domain to `manifest.json` under `host_permissions`.
+4.  **CORS**: Ensure the backend allows requests from `chrome-extension://*` (see web README).
+
+---

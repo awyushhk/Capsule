@@ -2,6 +2,8 @@
 
 > The ultimate video organization ecosystem for power users. Organize YouTube content into nested folders, sync across devices, and manage your library through a premium web dashboard.
 
+![Capsule Extension](capsule-extension/public/capsule-extension.png)
+
 ---
 
 ## 🚀 The Ecosystem

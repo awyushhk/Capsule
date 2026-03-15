@@ -63,3 +63,37 @@ Open [http://localhost:3000](http://localhost:3000) to see the dashboard.
 - `src/app/dashboard/`: Core dashboard logic and UI components.
 - `src/lib/treeHelpers.ts`: Recursive algorithms for building the folder tree.
 - `src/app/globals.css`: The "Capsule" glassmorphism design system.
+
+---
+
+## 🔒 Security & CORS
+
+To allow the Chrome Extension to communicate with the dashboard API in production, ensure `next.config.ts` includes the following header configuration:
+
+```typescript
+// next.config.ts snippet
+async headers() {
+  return [
+    {
+      source: "/api/:path*",
+      headers: [
+        { key: "Access-Control-Allow-Credentials", value: "true" },
+        { key: "Access-Control-Allow-Origin", value: "*" }, // Recommmended: chrome-extension://<your-id>
+        { key: "Access-Control-Allow-Methods", value: "GET,DELETE,PATCH,POST,PUT" },
+        { key: "Access-Control-Allow-Headers", value: "Authorization, Content-Type, ..." },
+      ],
+    },
+  ];
+}
+```
+
+---
+
+## 🚀 Deployment (Vercel)
+
+1. Connect your GitHub repository to [Vercel](https://vercel.com).
+2. Add all environment variables from `.env` to the Vercel project settings.
+3. Ensure `DATABASE_URL` (PostgreSQL) is correctly configured.
+4. Deploy. Once live, update your Extension's `utils/config.ts` with the new production URL.
+
+---
