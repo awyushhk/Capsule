@@ -17,6 +17,7 @@ import {
   removeItemById,
   toggleFolderExpanded,
   setAllExpanded,
+  applyExpansionState,
 } from '../utils/treeHelpers';
 
 // ─── State Interface ──────────────────────────────────────────────────────────
@@ -62,6 +63,23 @@ const defaultRoot: FolderItem = {
   isExpanded: true,
 };
 
+// ─── Persistence Helpers ──────────────────────────────────────────────────────
+
+const STORAGE_KEY = 'capsule_expanded_folders';
+
+function getStoredExpanded(): Set<string> {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? new Set(JSON.parse(stored)) : new Set(['root']);
+  } catch {
+    return new Set(['root']);
+  }
+}
+
+function saveStoredExpanded(ids: Set<string>) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(ids)));
+}
+
 // ─── Store ────────────────────────────────────────────────────────────────────
 
 export const useCapsuleStore = create<CapsuleState>()(
@@ -73,14 +91,18 @@ export const useCapsuleStore = create<CapsuleState>()(
     searchQuery: '',
     selectedFolderId: 'root',
     currentVideo: null,
-    expandedFolders: new Set(['root']),
+    expandedFolders: getStoredExpanded(),
 
     // ── API Sync Data ─────────────────────────────────────────────────────────
 
     fetchLibrary: async () => {
       try {
         const data = await fetchLibrary();
-        set({ root: data.root, isLoaded: true });
+        const expandedIds = get().expandedFolders;
+        set({ 
+          root: applyExpansionState(data.root, expandedIds), 
+          isLoaded: true 
+        });
       } catch (err) {
         console.error('[Capsule] Failed to fetch data from API:', err);
         set({ isLoaded: true });
@@ -99,7 +121,7 @@ export const useCapsuleStore = create<CapsuleState>()(
         type: 'folder',
         name: name.trim() || 'New Folder',
         children: [],
-        isExpanded: true
+        isExpanded: false
       };
       
       set({ 
@@ -219,8 +241,16 @@ export const useCapsuleStore = create<CapsuleState>()(
 
     toggleFolder: (folderId) => {
       set((state) => {
+        const newExpanded = new Set(state.expandedFolders);
+        if (newExpanded.has(folderId)) {
+          newExpanded.delete(folderId);
+        } else {
+          newExpanded.add(folderId);
+        }
+        saveStoredExpanded(newExpanded);
+
         const newRoot = toggleFolderExpanded(state.root, folderId);
-        return { root: newRoot };
+        return { root: newRoot, expandedFolders: newExpanded };
       });
     },
 

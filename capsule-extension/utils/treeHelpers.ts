@@ -120,6 +120,17 @@ export function setAllExpanded(node: FolderItem, expanded: boolean): FolderItem 
   };
 }
 
+/** Apply a set of expanded folder IDs to a tree */
+export function applyExpansionState(node: FolderItem, expandedIds: Set<string>): FolderItem {
+  return {
+    ...node,
+    isExpanded: expandedIds.has(node.id),
+    children: node.children.map((child) =>
+      child.type === 'folder' ? applyExpansionState(child as FolderItem, expandedIds) : child
+    ),
+  };
+}
+
 // ─── Data Extraction ─────────────────────────────────────────────────────────
 
 /** Flatten all videos from the tree into a list with their folder name */
