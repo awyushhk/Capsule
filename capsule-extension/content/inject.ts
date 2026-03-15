@@ -27,6 +27,7 @@ let isSidebarOpen = false;
 let isCollapsedStrip = false;
 let sidebarIframe: HTMLIFrameElement | null = null;
 let buttonInjectionAttempts = 0;
+let isCapsuleEnabled = true;
 const MAX_ATTEMPTS = 20;
 
 // ─── Sidebar Iframe ───────────────────────────────────────────────────────────
@@ -92,6 +93,26 @@ function toggleSidebar() {
   } else {
     openSidebar();
   }
+}
+
+// ─── Enable/Disable UI ────────────────────────────────────────────────────────
+
+function cleanupCapsuleUI() {
+  console.log("[Capsule] Cleaning up UI...");
+  
+  // Remove sidebar
+  const iframe = document.getElementById(SIDEBAR_IFRAME_ID);
+  if (iframe) iframe.remove();
+  
+  // Remove button
+  const btn = document.getElementById(CAPSULE_BTN_ID);
+  if (btn) btn.remove();
+
+  // Reset YouTube layout
+  adjustYouTubeLayout(0);
+  
+  isSidebarOpen = false;
+  isCollapsedStrip = false;
 }
 
 // ─── Layout Adjustment ────────────────────────────────────────────────────────
@@ -262,6 +283,19 @@ window.addEventListener("message", (event: MessageEvent) => {
         chrome.storage.local.set({ "capsule-collapsed-strip": isCollapsedStrip });
       }
       break;
+    }
+  }
+});
+
+/** Listen for messages from background/popup */
+chrome.runtime.onMessage.addListener((message) => {
+  if (message.type === "ENABLE_STATE_CHANGED") {
+    isCapsuleEnabled = message.enabled;
+    if (isCapsuleEnabled) {
+      console.log("[Capsule] Re-enabling UI...");
+      init();
+    } else {
+      cleanupCapsuleUI();
     }
   }
 });
@@ -677,8 +711,17 @@ const contextMenuObserver = { observe: () => {} }; // no-op placeholder so init 
 // ─── Initialization ───────────────────────────────────────────────────────────
 
 async function init() {
+  // First check if enabled
+  const { "capsule-enabled": enabled } = await chrome.storage.local.get("capsule-enabled");
+  isCapsuleEnabled = enabled !== false; // default to true
+
+  if (!isCapsuleEnabled) {
+    console.log("[Capsule] Extension is disabled via popup.");
+    return;
+  }
+
   // Load persisted visibility state
-  const result = await chrome.storage.local.get(["capsule-sidebar-open", "capsule-collapsed-strip"]);
+  const result = await chrome.storage.local.get(["capsule-sidebar-open", "capsule-collapsed-strip", "capsule-video-count"]);
   
   if (result["capsule-sidebar-open"]) {
     openSidebar();

@@ -18,6 +18,7 @@ import {
   toggleFolderExpanded,
   setAllExpanded,
   applyExpansionState,
+  countVideos,
 } from '../utils/treeHelpers';
 
 // ─── State Interface ──────────────────────────────────────────────────────────
@@ -276,3 +277,16 @@ export const useCapsuleStore = create<CapsuleState>()(
     setCurrentVideo: (video) => set({ currentVideo: video }),
   }))
 );
+
+// ─── Post-creation logic ──────────────────────────────────────────────────────
+
+// Subscribe to root changes to sync total video count to chrome.storage.local
+// This allows the extension popup to show the count without loading the whole store.
+useCapsuleStore.subscribe(
+  (state) => state.root,
+  (root) => {
+    const totalVideos = countVideos(root);
+    chrome.storage.local.set({ "capsule-video-count": totalVideos });
+  }
+);
+

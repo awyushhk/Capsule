@@ -44,25 +44,30 @@ const fixedManifest = stripPublicPrefix(manifest);
 fs.writeFileSync(manifestPath, JSON.stringify(fixedManifest, null, 2));
 console.log('✓ Fixed manifest.json icon paths');
 
-// ─── 2. Fix sidebar/index.html asset paths ───────────────────────────────────
+// ─── 2. Fix sidebar & popup index.html asset paths ───────────────────────────
 // Rewrite absolute paths to relative paths so they always resolve correctly
-// regardless of Chrome extension URL structure
 
-const sidebarHtmlPath = path.join(DIST, 'sidebar', 'index.html');
-let sidebarHtml = fs.readFileSync(sidebarHtmlPath, 'utf-8');
+function fixHtmlPaths(htmlPath, depth = 1) {
+  if (!fs.existsSync(htmlPath)) return;
+  let html = fs.readFileSync(htmlPath, 'utf-8');
+  const relativePrefix = '../'.repeat(depth);
 
-// /sidebar/index.js → ./index.js  (same directory)
-sidebarHtml = sidebarHtml.replace(/src="\/sidebar\/index\.js"/g, 'src="./index.js"');
+  // /sidebar/index.js → ./index.js or /popup/index.js → ./index.js
+  html = html.replace(/src="\/[^"]+\/index\.js"/g, 'src="./index.js"');
+  
+  // /common.css → ../common.css
+  html = html.replace(/href="\/common\.css"/g, `href="${relativePrefix}common.css"`);
+  
+  // Any other absolute /assets/ references
+  html = html.replace(/href="\/assets\//g, `href="${relativePrefix}assets/`);
+  html = html.replace(/src="\/assets\//g, `src="${relativePrefix}assets/`);
 
-// /index.css → ../index.css  (one level up from sidebar/)
-sidebarHtml = sidebarHtml.replace(/href="\/index\.css"/g, 'href="../index.css"');
+  fs.writeFileSync(htmlPath, html);
+  console.log(`✓ Fixed asset paths in ${path.relative(DIST, htmlPath)}`);
+}
 
-// Any other absolute /assets/ references
-sidebarHtml = sidebarHtml.replace(/href="\/assets\//g, 'href="../assets/');
-sidebarHtml = sidebarHtml.replace(/src="\/assets\//g, 'src="../assets/');
-
-fs.writeFileSync(sidebarHtmlPath, sidebarHtml);
-console.log('✓ Fixed sidebar/index.html asset paths');
+fixHtmlPaths(path.join(DIST, 'sidebar', 'index.html'), 1);
+fixHtmlPaths(path.join(DIST, 'popup', 'index.html'), 1);
 
 // ─── 3. Verify required files exist ──────────────────────────────────────────
 
@@ -73,7 +78,9 @@ const required = [
   'content/inject.css',
   'sidebar/index.html',
   'sidebar/index.js',
-  'index.css',
+  'popup/index.html',
+  'popup/index.js',
+  'common.css',
   'icons/icon16.png',
   'icons/icon48.png',
   'icons/icon128.png',

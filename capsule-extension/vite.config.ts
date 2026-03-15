@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     webExtension({
       manifest: () => readJsonFile('./manifest.json'),
-      additionalInputs: ['sidebar/index.html'],
+      additionalInputs: ['sidebar/index.html', 'popup/index.html'],
       disableAutoLaunch: true,
     }),
   ],

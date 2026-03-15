@@ -5,6 +5,7 @@ import { CONFIG } from '../utils/config';
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === 'install') {
     console.log('[Capsule] Extension installed. Welcome!');
+    chrome.storage.local.set({ "capsule-enabled": true });
   } else if (details.reason === 'update') {
     console.log(`[Capsule] Updated to version ${chrome.runtime.getManifest().version}`);
   }
@@ -14,11 +15,11 @@ chrome.runtime.onInstalled.addListener((details) => {
 
 /**
  * Handle clicks on the pinned extension icon in the browser toolbar.
- * Redirects the user to the Web Dashboard.
+ * (Deprecated: Now handled by popup/index.html)
  */
-chrome.action.onClicked.addListener(() => {
-  chrome.tabs.create({ url: CONFIG.DASHBOARD_URL });
-});
+// chrome.action.onClicked.addListener(() => {
+//   chrome.tabs.create({ url: CONFIG.DASHBOARD_URL });
+// });
 
 // ─── Message Routing ──────────────────────────────────────────────────────────
 
