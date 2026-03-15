@@ -38,7 +38,7 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
 export function AuthWrapper({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
   const { getToken, isLoaded, isSignedIn } = auth;
-  const fetchLibrary = useCapsuleStore((state) => state.fetchLibrary);
+  const [isFetcherReady, setIsFetcherReady] = useState(false);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -52,12 +52,10 @@ export function AuthWrapper({ children }: { children: React.ReactNode }) {
       }
     });
 
-    if (isSignedIn) {
-      fetchLibrary();
-    }
-  }, [getToken, isLoaded, isSignedIn, fetchLibrary]);
+    setIsFetcherReady(true);
+  }, [getToken, isLoaded]);
 
-  if (!isLoaded) {
+  if (!isLoaded || !isFetcherReady) {
     return (
       <div className="flex w-full h-full items-center justify-center p-8 text-neutral-400 bg-[#0A0A0A]">
         <div className="flex flex-col items-center gap-3">

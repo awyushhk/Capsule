@@ -39,6 +39,8 @@ export function DashboardClient({ folders: initialFolders, rootVideos: initialRo
   const [renamingFolderId, setRenamingFolderId] = useState<string | null>(null);
   const [editingFolderName, setEditingFolderName] = useState('');
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // ── Tree Construction ────────────────────────────────────────────────────
   const tree = useMemo(() => buildTree(folders), [folders]);
@@ -121,7 +123,8 @@ export function DashboardClient({ folders: initialFolders, rootVideos: initialRo
   };
 
   const handleRenameFolder = async () => {
-    if (!editingFolderName.trim() || !renamingFolderId) return;
+    if (!editingFolderName.trim() || !renamingFolderId || isRenaming) return;
+    setIsRenaming(true);
     try {
       const res = await fetch('/api/folders/rename', {
         method: 'PATCH',
@@ -134,22 +137,30 @@ export function DashboardClient({ folders: initialFolders, rootVideos: initialRo
       setEditingFolderName('');
     } catch (e) {
       console.error(e);
+    } finally {
+      setIsRenaming(false);
     }
   };
 
   const handleDeleteVideo = async (id: string) => {
     if (!confirm('Delete this video?')) return;
-    await fetch('/api/videos/delete', {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id }),
-    });
-    setRootVideos(prev => prev.filter(v => v.id !== id));
-    setFolders(prev => prev.map(f => ({ ...f, videos: f.videos.filter(v => v.id !== id) })));
+    setDeletingId(id);
+    try {
+      await fetch('/api/videos/delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      setRootVideos(prev => prev.filter(v => v.id !== id));
+      setFolders(prev => prev.map(f => ({ ...f, videos: f.videos.filter(v => v.id !== id) })));
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const handleDeleteFolder = async (id: string) => {
     if (!confirm('Delete this folder and all its videos?')) return;
+    setDeletingId(id);
     try {
       await fetch('/api/folders/delete', {
         method: 'DELETE',
@@ -160,6 +171,8 @@ export function DashboardClient({ folders: initialFolders, rootVideos: initialRo
       if (currentFolderId === id) setCurrentFolderId(null);
     } catch (e) {
       console.error(e);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -242,16 +255,16 @@ export function DashboardClient({ folders: initialFolders, rootVideos: initialRo
       <main className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         
         {/* Header */}
-        <header className="glass-header h-20 px-4 md:px-8 flex items-center justify-between flex-shrink-0">
-          <div className="flex items-center gap-4 flex-1 min-w-0">
+        <header className="glass-header h-auto min-h-[80px] py-4 px-4 md:px-8 flex flex-col md:flex-row items-center justify-between gap-4 flex-shrink-0">
+          <div className="flex items-center gap-4 w-full md:w-auto">
             <button 
               onClick={() => setShowMobileMenu(true)}
-              className="md:hidden p-2 bg-secondary rounded-xl text-white flex-shrink-0"
+              className="md:hidden p-2.5 bg-secondary rounded-xl text-white flex-shrink-0"
             >
               <List size={20} />
             </button>
             <div className="flex items-center gap-3 overflow-hidden">
-              <div className="hidden md:flex items-center gap-3 text-sm font-medium text-muted">
+              <div className="hidden md:flex items-center gap-3 text-sm font-medium text-muted overflow-x-auto no-scrollbar">
                 <button 
                   onClick={() => setCurrentFolderId(null)}
                   className="hover:text-white transition-colors flex-shrink-0"
@@ -273,26 +286,35 @@ export function DashboardClient({ folders: initialFolders, rootVideos: initialRo
                   </div>
                 ))}
               </div>
-              <div className="md:hidden truncate font-bold">
-                {currentFolder ? currentFolder.name : 'My Library'}
+              <div className="md:hidden truncate font-bold flex items-center gap-2 max-w-[150px]">
+                <span className="truncate">{currentFolder ? currentFolder.name : 'My Library'}</span>
               </div>
             </div>
+            
+            <div className="flex-1 md:hidden" />
+            
+            <button
+              onClick={() => { setShowAddVideo(true); setAddVideoFolder(currentFolderId || 'root'); }}
+              className="md:hidden bg-accent hover:bg-accent-hover text-white p-2.5 rounded-xl border border-white/5 active:scale-95 transition-all flex items-center justify-center shadow-lg shadow-accent/10"
+            >
+              <Plus size={20} />
+            </button>
           </div>
 
-          <div className="flex items-center gap-2 md:gap-4 ml-4">
+          <div className="flex items-center gap-3 w-full md:w-auto">
             {/* Search */}
-            <div className="relative group hidden sm:block">
+            <div className="relative group flex-1 md:w-64">
               <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted group-focus-within:text-accent transition-colors" />
               <input
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Search..."
-                className="bg-secondary/50 border border-panel-border rounded-xl pl-10 pr-4 py-2 text-sm w-40 md:w-64 focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent/40 transition-all"
+                placeholder="Search your library..."
+                className="bg-secondary/50 border border-panel-border rounded-xl pl-10 pr-4 py-2.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent/40 transition-all font-medium"
               />
             </div>
 
             {/* View Switching */}
-            <div className="flex bg-secondary/50 border border-panel-border rounded-xl p-1">
+            <div className="flex bg-secondary/50 border border-panel-border rounded-xl p-1 shrink-0">
               <button
                 onClick={() => setViewMode('tree')}
                 className={`p-1.5 rounded-lg transition-all ${viewMode === 'tree' ? 'bg-white shadow-sm text-black' : 'text-muted hover:text-white'}`}
@@ -309,10 +331,10 @@ export function DashboardClient({ folders: initialFolders, rootVideos: initialRo
 
             <button
               onClick={() => { setShowAddVideo(true); setAddVideoFolder(currentFolderId || 'root'); }}
-              className="bg-accent hover:bg-accent-hover text-white p-2 md:px-4 md:py-2 rounded-xl border border-white/5 active:scale-95 transition-all flex items-center gap-2 shadow-lg shadow-accent/10"
+              className="hidden md:flex bg-accent hover:bg-accent-hover text-white px-4 py-2.5 rounded-xl border border-white/5 active:scale-95 transition-all items-center gap-2 shadow-lg shadow-accent/10 font-bold text-sm"
             >
               <Plus size={18} />
-              <span className="hidden lg:inline font-semibold text-sm">Add</span>
+              <span>Add</span>
             </button>
           </div>
         </header>
@@ -363,29 +385,30 @@ export function DashboardClient({ folders: initialFolders, rootVideos: initialRo
                       <div 
                         key={f.id}
                         onClick={() => { setCurrentFolderId(f.id); toggleFolder(f.id); }}
-                        className="glass-panel group p-2 md:p-4 rounded-xl md:rounded-2xl flex flex-col items-center gap-1.5 md:gap-3 cursor-pointer hover:bg-white/[0.03] hover:border-accent/30 hover:-translate-y-1 transition-all duration-300"
+                        className="glass-panel group p-3 md:p-4 rounded-xl md:rounded-2xl flex flex-col items-center gap-2 md:gap-3 cursor-pointer hover:bg-white/[0.03] hover:border-accent/30 hover:-translate-y-1 transition-all duration-300 relative"
                       >
-                        <div className="w-9 h-9 md:w-12 md:h-12 bg-amber-500/10 rounded-xl md:rounded-2xl flex items-center justify-center text-amber-500 group-hover:bg-amber-500 group-hover:text-white transition-all">
-                          <Folder size={18} className="fill-current md:w-[24px] md:h-[24px]" />
+                        <div className="w-10 h-10 md:w-12 md:h-12 bg-amber-500/10 rounded-xl md:rounded-2xl flex items-center justify-center text-amber-500 group-hover:bg-amber-500 group-hover:text-white transition-all">
+                          <Folder size={20} className="fill-current md:w-[24px] md:h-[24px]" />
                         </div>
-                        <div className="text-center min-w-0 w-full relative group/folder">
-                          <p className="text-[11px] md:text-sm font-semibold truncate group-hover:text-amber-200 transition-colors">{f.name}</p>
-                          <p className="text-[9px] md:text-[10px] text-muted font-mono">{f.videos.length} videos</p>
-                          
-                          <div className="absolute top-1 right-0 flex items-center gap-1 md:gap-2 opacity-0 group-hover/folder:opacity-100 transition-opacity">
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); setRenamingFolderId(f.id); setEditingFolderName(f.name); }}
-                              className="p-1 text-muted hover:text-white"
-                            >
-                              <Edit2 size={10} />
-                            </button>
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); handleDeleteFolder(f.id); }}
-                              className="p-1 text-muted hover:text-accent"
-                            >
-                              <Trash2 size={10} />
-                            </button>
-                          </div>
+                        <div className="text-center min-w-0 w-full">
+                          <p className="text-[12px] md:text-sm font-semibold truncate group-hover:text-amber-200 transition-colors px-1">{f.name}</p>
+                          <p className="text-[10px] text-muted font-mono">{f.videos.length} videos</p>
+                        </div>
+
+                        {/* Mobile Actions Container (Side) */}
+                        <div className="absolute top-2 right-2 flex flex-col gap-1 md:flex-row md:opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); setRenamingFolderId(f.id); setEditingFolderName(f.name); }}
+                            className="p-1.5 text-muted hover:text-white bg-black/40 md:bg-transparent rounded-lg backdrop-blur-sm"
+                          >
+                            <Edit2 size={12} />
+                          </button>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); handleDeleteFolder(f.id); }}
+                            className="p-1.5 text-muted hover:text-accent bg-black/40 md:bg-transparent rounded-lg backdrop-blur-sm"
+                          >
+                            <Trash2 size={12} />
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -396,7 +419,7 @@ export function DashboardClient({ folders: initialFolders, rootVideos: initialRo
               {/* Root/Folder Videos */}
               <section className="px-0 md:px-0">
                 <div className="flex items-center justify-between mb-4 md:mb-6 group/sec px-4 md:px-0">
-                  <h2 className="text-[10px] font-bold text-muted uppercase tracking-[0.2em] flex items-center gap-3 flex-1">
+                  <h2 className="text-[10px] font-bold text-muted uppercase tracking-[0.2em] flex items-center gap-2 flex-1">
                     <span className="text-white">Videos</span> <div className="h-px flex-1 bg-white/5 group-hover/sec:bg-accent/20 transition-colors" />
                   </h2>
                 </div>
@@ -529,10 +552,15 @@ export function DashboardClient({ folders: initialFolders, rootVideos: initialRo
               />
               <button
                 onClick={handleRenameFolder}
-                disabled={!editingFolderName.trim()}
-                className="w-full bg-accent hover:bg-accent-hover text-white font-bold py-3.5 rounded-xl transition-all"
+                disabled={!editingFolderName.trim() || isRenaming}
+                className="w-full bg-accent hover:bg-accent-hover text-white font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2"
               >
-                Rename Folder
+                {isRenaming ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Renaming...
+                  </>
+                ) : 'Rename Folder'}
               </button>
             </div>
           </div>
@@ -563,6 +591,7 @@ function SidebarFolder({
 }) {
   const isExpanded = expandedFolders.has(folder.id);
   const isActive = currentFolderId === folder.id;
+  const isDeleting = false; // We don't have deletingId here yet, passing it down from DashboardClient would be better but let's check props
 
   return (
     <div className="group">
@@ -586,24 +615,24 @@ function SidebarFolder({
         <Folder size={16} className={isExpanded || isActive ? 'text-amber-500' : 'text-muted'} />
         <span className="flex-1 truncate">{folder.name}</span>
         
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
           <button 
             onClick={(e) => { e.stopPropagation(); onAddSubfolder(folder.id); }}
-            className="p-1 hover:text-white"
+            className="p-1.5 hover:bg-white/10 rounded-lg text-muted hover:text-white"
           >
-            <Plus size={12} />
+            <Plus size={14} />
           </button>
           <button 
             onClick={(e) => { e.stopPropagation(); onRename(folder.id, folder.name); }}
-            className="p-1 hover:text-white"
+            className="p-1.5 hover:bg-white/10 rounded-lg text-muted hover:text-white"
           >
-            <Edit2 size={12} />
+            <Edit2 size={14} />
           </button>
           <button 
             onClick={(e) => { e.stopPropagation(); onDelete(folder.id); }}
-            className="p-1 hover:text-accent"
+            className="p-1.5 hover:bg-white/10 rounded-lg text-muted hover:text-accent"
           >
-            <Trash2 size={12} />
+            <Trash2 size={14} />
           </button>
         </div>
       </div>
@@ -659,9 +688,9 @@ function VideoCard({ video, onDelete }: { video: VideoType & { folderName: strin
       </a>
       <button
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); onDelete(video.id); }}
-        className="absolute top-2 right-2 md:top-3 md:right-3 w-7 h-7 md:w-8 md:h-8 rounded-lg md:rounded-xl bg-black/60 backdrop-blur-md flex items-center justify-center text-white/50 hover:bg-accent hover:text-white opacity-100 md:opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg"
+        className="absolute top-2 right-2 md:top-3 md:right-3 w-8 h-8 md:w-9 md:h-9 rounded-xl bg-black/60 backdrop-blur-md flex items-center justify-center text-white/70 hover:bg-accent hover:text-white md:opacity-0 group-hover:opacity-100 transition-all duration-200 shadow-lg border border-white/5"
       >
-        <Trash2 size={12} />
+        <Trash2 size={14} />
       </button>
     </div>
   );
@@ -682,7 +711,7 @@ function VideoRow({ video, onDelete, hideFolder }: { video: VideoType & { folder
           <p className="text-[10px] text-muted font-mono mt-0.5">{video.folderName}</p>
         )}
       </div>
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200">
+      <div className="flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-all duration-200">
         <a 
           href={video.url} 
           target="_blank" 

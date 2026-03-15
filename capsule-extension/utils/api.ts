@@ -1,6 +1,7 @@
 import type { CapsuleData, FolderItem, VideoItem } from '../types';
+import { CONFIG } from './config';
 
-const API_BASE = 'http://localhost:3000';
+const API_BASE = CONFIG.API_BASE_URL;
 
 let getTokenFn: (() => Promise<string | null>) | null = null;
 
@@ -9,9 +10,15 @@ export function setApiTokenFetcher(fn: () => Promise<string | null>) {
 }
 
 async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
-  if (!getTokenFn) throw new Error('[Capsule API] Token fetcher not set');
+  if (!getTokenFn) {
+    console.error('[Capsule API] Token fetcher not set. AuthWrapper might not be initialized.');
+    throw new Error('[Capsule API] Token fetcher not set');
+  }
   const token = await getTokenFn();
-  if (!token) throw new Error('[Capsule API] No auth token available');
+  if (!token) {
+    console.warn('[Capsule API] No auth token available. User might not be signed in.');
+    throw new Error('[Capsule API] No auth token available');
+  }
 
   const headers = new Headers(options.headers);
   headers.set('Authorization', `Bearer ${token}`);
