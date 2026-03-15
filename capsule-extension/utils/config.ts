@@ -10,5 +10,5 @@ export const CONFIG = {
   // Use VITE_DASHBOARD_URL from .env if available, otherwise fallback to production
   DASHBOARD_URL: import.meta.env.VITE_DASHBOARD_URL || 'https://capsule-yt.vercel.app/dashboard',
   // API URL for library synchronization
-  API_BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000',
+  API_BASE_URL: import.meta.env.VITE_API_BASE_URL || 'https://capsule-yt.vercel.app',
 };

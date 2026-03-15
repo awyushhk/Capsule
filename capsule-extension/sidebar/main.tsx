@@ -20,7 +20,7 @@ createRoot(root).render(
   <StrictMode>
     <ClerkProvider 
       publishableKey={PUBLISHABLE_KEY}
-      syncHost="http://localhost:3000"
+      syncHost="https://capsule-yt.vercel.app"
     >
       <AuthWrapper>
         <CapsuleSidebar />

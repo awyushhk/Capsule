@@ -6,6 +6,7 @@
   "permissions": ["storage", "activeTab", "scripting", "cookies"],
   "host_permissions": [
     "https://www.youtube.com/*",
+    "https://capsule-yt.vercel.app/*",
     "http://localhost:3000/*",
     "https://*.clerk.accounts.dev/*"
   ],
